@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>قائمة المهام</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        header {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        #task-form {
+            display: flex;
+            gap: 10px;
+        }
+
+        #task-input {
+            flex: 1;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        #task-form button {
+            padding: 10px 20px;
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        #task-form button:hover {
+            background-color: #1a252f;
+        }
+
+        #task-list {
+            list-style: none;
+            margin-bottom: 20px;
+        }
+
+        .task-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            transition: all 0.3s;
+        }
+
+        .task-item:hover {
+            background-color: #f0f0f0;
+        }
+
+        .task-item.completed {
+            background-color: #e8f5e9;
+            text-decoration: line-through;
+            color: #777;
+        }
+
+        .task-checkbox {
+            margin-left: 10px;
+            cursor: pointer;
+        }
+
+        .task-text {
+            flex: 1;
+            margin: 0 10px;
+        }
+
+        .delete-btn {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .delete-btn:hover {
+            background-color: #c0392b;
+        }
+
+        .filters {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .filters button {
+            padding: 8px 15px;
+            background-color: #ecf0f1;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .filters button:hover {
+            background-color: #bdc3c7;
+        }
+
+        .filters button.active {
+            background-color: #2c3e50;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>قائمة المهام اليومية</h1>
+            <form id="task-form">
+                <input type="text" id="task-input" placeholder="أضف مهمة جديدة..." required>
+                <button type="submit">إضافة</button>
+            </form>
+        </header>
+        
+        <main>
+            <ul id="task-list">
+                <!-- المهام ستضاف هنا ديناميكياً -->
+            </ul>
+            
+            <div class="filters">
+                <button class="active" id="all">الكل</button>
+                <button id="active">النشطة</button>
+                <button id="completed">المكتملة</button>
+                <button id="clear">حذف المكتملة</button>
+            </div>
+        </main>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const taskForm = document.getElementById('task-form');
+            const taskInput = document.getElementById('task-input');
+            const taskList = document.getElementById('task-list');
+            const filterButtons = document.querySelectorAll('.filters button');
+            
+            // تحميل المهام من localStorage
+            loadTasks();
+            
+            // إضافة مهمة جديدة
+            taskForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const taskText = taskInput.value.trim();
+                
+                if (taskText) {
+                    addTask(taskText);
+                    taskInput.value = '';
+                    saveTasks();
+                }
+            });
+            
+            // فلترة المهام
+            filterButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // إزالة الفعالية من جميع الأزرار
+                    filterButtons.forEach(btn => btn.classList.remove('active'));
+                    // إضافة الفعالية للزر الحالي
+                    this.classList.add('active');
+                    
+                    const filter = this.id;
+                    filterTasks(filter);
+                });
+            });
+            
+            // وظيفة إضافة مهمة
+            function addTask(text, isCompleted = false) {
+                const taskItem = document.createElement('li');
+                taskItem.className = 'task-item' + (isCompleted ? ' completed' : '');
+                
+                taskItem.innerHTML = `
+                    <input type="checkbox" class="task-checkbox" ${isCompleted ? 'checked' : ''}>
+                    <span class="task-text">${text}</span>
+                    <button class="delete-btn">حذف</button>
+                `;
+                
+                taskList.appendChild(taskItem);
+                
+                // إضافة أحداث للمربع الاختياري
+                const checkbox = taskItem.querySelector('.task-checkbox');
+                checkbox.addEventListener('change', function() {
+                    taskItem.classList.toggle('completed');
+                    saveTasks();
+                });
+                
+                // إضافة حدث لزر الحذف
+                const deleteBtn = taskItem.querySelector('.delete-btn');
+                deleteBtn.addEventListener('click', function() {
+                    taskItem.remove();
+                    saveTasks();
+                });
+            }
+            
+            // وظيفة حفظ المهام في localStorage
+            function saveTasks() {
+                const tasks = [];
+                document.querySelectorAll('.task-item').forEach(task => {
+                    tasks.push({
+                        text: task.querySelector('.task-text').textContent,
+                        completed: task.querySelector('.task-checkbox').checked
+                    });
+                });
+                localStorage.setItem('tasks', JSON.stringify(tasks));
+            }
+            
+            // وظيفة تحميل المهام من localStorage
+            function loadTasks() {
+                const savedTasks = localStorage.getItem('tasks');
+                if (savedTasks) {
+                    JSON.parse(savedTasks).forEach(task => {
+                        addTask(task.text, task.completed);
+                    });
+                }
+            }
+            
+            // وظيفة فلترة المهام
+            function filterTasks(filter) {
+                const tasks = document.querySelectorAll('.task-item');
+                
+                tasks.forEach(task => {
+                    switch(filter) {
+                        case 'all':
+                            task.style.display = 'flex';
+                            break;
+                        case 'active':
+                            task.style.display = task.classList.contains('completed') ? 'none' : 'flex';
+                            break;
+                        case 'completed':
+                            task.style.display = task.classList.contains('completed') ? 'flex' : 'none';
+                            break;
+                        case 'clear':
+                            if (task.classList.contains('completed')) {
+                                task.remove();
+                            }
+                            saveTasks();
+                            break;
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
